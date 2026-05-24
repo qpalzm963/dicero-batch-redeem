@@ -549,7 +549,7 @@
       list.innerHTML = '<div id="community-loading">目前沒有社群碼</div>';
       return;
     }
-    rows.forEach(([ts, code, status]) => {
+    rows.forEach(([ts, code, , status]) => {
       if (!code) return;
       const isExpired  = status === '已失效';
       const isValid    = status === '有效';
