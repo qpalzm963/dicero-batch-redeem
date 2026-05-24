@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>禮品碼批量兌換 · Dicero</title>
+  <style>
+    @font-face {
+      font-family: 'CookieRun';
+      src: url('https://dicero.habby.com/gift/static/fonts/CookieRun_Bold.0033523.woff') format('woff');
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'CookieRun', 'Segoe UI', sans-serif;
+      background: url('https://dicero.habby.com/gift/static/img/bg.cbbba74.png') center / cover fixed;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px 60px;
+    }
+
+    /* ────────────────────────────────
+       主面板：遊戲彈窗樣式
+    ──────────────────────────────── */
+    .panel {
+      width: 100%;
+      max-width: 440px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    /* 橙色 header bar */
+    .panel-header {
+      background: #d96e12;
+      padding: 16px 22px 14px;
+      border-bottom: 3px solid #a84e08;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-header h1 {
+      font-size: 17px;
+      color: #fff;
+      letter-spacing: 0.3px;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+      flex: 1;
+    }
+    .panel-header .tag {
+      font-size: 10px;
+      background: rgba(0,0,0,0.2);
+      color: #ffd98a;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    /* 羊皮紙底色主體 */
+    .panel-body {
+      background: #fdf0d0;
+      padding: 22px 20px 20px;
+    }
+
+    /* ── 輸入欄位 ── */
+    .field { margin-bottom: 14px; }
+
+    label {
+      display: block;
+      font-size: 11px;
+      color: #8a5c28;
+      margin-bottom: 5px;
+      letter-spacing: 0.3px;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: #fff8ec;
+      border: 1.5px solid #c8943a;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      color: #2e1a08;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus,
+    textarea:focus { border-color: #d96e12; }
+    input.error    { border-color: #c02010; }
+    textarea { resize: vertical; line-height: 1.6; }
+
+    /* ── 按鈕 ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: filter 0.12s;
+      white-space: nowrap;
+    }
+    .btn:active { transform: translateY(2px); }
+
+    .btn-orange {
+      background: #d96e12;
+      color: #fff;
+      box-shadow: 0 3px 0 #8a4208;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+    .btn-orange:hover  { filter: brightness(1.07); }
+    .btn-orange:active { box-shadow: none; }
+    .btn-orange:disabled {
+      background: #c8a878;
+      box-shadow: none;
+      color: #f0debb;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-tan {
+      background: #c8943a;
+      color: #fff8ec;
+      box-shadow: 0 3px 0 #7a5010;
+    }
+    .btn-tan:hover  { filter: brightness(1.07); }
+    .btn-tan:active { box-shadow: none; }
+
+    .btn-ghost {
+      background: transparent;
+      color: #8a5c28;
+      border: 1.5px solid #c8943a;
+    }
+    .btn-ghost:hover { background: #f5e0b0; }
+
+    .btn-red {
+      background: #c02010;
+      color: #fff;
+      box-shadow: 0 3px 0 #7a1008;
+    }
+    .btn-red:hover  { filter: brightness(1.1); }
+    .btn-red:active { box-shadow: none; }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-row .btn { flex: 1; }
+
+    /* ── 進度條 ── */
+    #process-section { display: none; }
+
+    .progress-wrap {
+      height: 6px;
+      background: #e8c878;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 6px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #d96e12;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .progress-text {
+      font-size: 11px;
+      color: #9a6a30;
+      margin-bottom: 14px;
+    }
+
+    /* ── 驗證碼區塊 ── */
+    .captcha-panel {
+      background: #fff8ec;
+      border: 1.5px solid #c8943a;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .code-badge-label {
+      font-size: 10px;
+      color: #9a6a30;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .code-badge {
+      font-size: 14px;
+      color: #2e1a08;
+      font-weight: bold;
+      margin-bottom: 12px;
+      word-break: break-all;
+    }
+    .captcha-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    #captcha-img {
+      height: 42px;
+      min-width: 90px;
+      border-radius: 6px;
+      border: 1.5px solid #c8943a;
+      background: #fff;
+      cursor: pointer;
+    }
+    .hint {
+      font-size: 10px;
+      color: #b07840;
+      margin-top: 6px;
+    }
+
+    /* ── 結果 ── */
+    .results-wrap {
+      background: #fff8ec;
+      border: 1.5px solid #c8943a;
+      border-radius: 8px;
+      padding: 10px 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      display: none;
+    }
+    .results-title {
+      font-size: 10px;
+      color: #9a6a30;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .result-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 8px;
+      margin-bottom: 3px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .result-item.success { background: #d8f0dc; border-left: 3px solid #3a9048; }
+    .result-item.fail    { background: #f8d8d0; border-left: 3px solid #c03020; }
+    .result-item.skipped { background: #ede8d8; border-left: 3px solid #b09050; }
+    .result-code { color: #2e1a08; font-size: 12px; word-break: break-all; }
+    .result-msg  { color: #7a5028; font-size: 11px; margin-top: 1px; }
+
+    /* ── 完成橫幅 ── */
+    .done-banner {
+      background: #d8f0dc;
+      border: 1.5px solid #3a9048;
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      color: #1e6030;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* ── CORS 警告 ── */
+    .cors-box {
+      background: #fff3cd;
+      border: 1.5px solid #d4a030;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #7a5010;
+      margin-top: 14px;
+      display: none;
+    }
+
+    /* ── 分隔線 ── */
+    .divider {
+      height: 1px;
+      background: #ddc07a;
+      margin: 14px 0;
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #f5e8c0; }
+    ::-webkit-scrollbar-thumb { background: #c8943a; border-radius: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="panel">
+
+  <!-- ── Header ── -->
+  <div class="panel-header">
+    <h1>禮品碼批量兌換</h1>
+    <span class="tag">Dicero</span>
+  </div>
+
+  <!-- ── Body ── -->
+  <div class="panel-body">
+
+    <!-- 輸入區 -->
+    <div id="input-section">
+      <div class="field">
+        <label>玩家 ID</label>
+        <input type="text" id="uid-input" placeholder="例：12345 或 1-12345678">
+      </div>
+      <div class="field">
+        <label>兌換碼（每行一組）</label>
+        <textarea id="codes-input" rows="7"
+          placeholder="HABBY2024ABC&#10;DICERO0518XY&#10;GIFT999CODE"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-orange" id="start-btn">開始兌換</button>
+      </div>
+    </div>
+
+    <!-- 處理區 -->
+    <div id="process-section">
+      <div class="progress-wrap">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-text" id="progress-text">準備中…</div>
+
+      <div class="captcha-panel" id="captcha-panel">
+        <div class="code-badge-label">目前兌換碼</div>
+        <div class="code-badge" id="current-code">—</div>
+
+        <div class="captcha-row">
+          <img id="captcha-img" src="" alt="驗證碼" title="點擊換一張">
+          <button class="btn btn-ghost" id="refresh-btn" style="padding:7px 12px;font-size:12px;">換一張</button>
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label>驗證碼</label>
+          <input type="text" id="captcha-input" placeholder="輸入圖片中的文字" autocomplete="off">
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-orange" id="submit-btn">確認兌換</button>
+          <button class="btn btn-ghost"  id="skip-btn">跳過</button>
+        </div>
+        <div class="hint">點擊圖片或「換一張」可更換驗證碼</div>
+      </div>
+
+      <div class="done-banner" id="done-banner"></div>
+
+      <div class="results-wrap" id="results-wrap">
+        <div class="results-title">兌換結果</div>
+        <div id="results-list"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-tan"   id="restart-btn" style="display:none;">再次兌換</button>
+        <button class="btn btn-red"   id="stop-btn">中止</button>
+      </div>
+    </div>
+
+    <!-- CORS 警告 -->
+    <div class="cors-box" id="cors-warning">
+      <strong>跨域錯誤（CORS）</strong>：無法從本機直接呼叫 API。<br>
+      請改用 Tampermonkey userscript 方式在官方頁面上執行，或以
+      <code>--disable-web-security</code> 旗標啟動 Chrome。
+    </div>
+
+  </div><!-- /panel-body -->
+</div><!-- /panel -->
+
+<script>
+  const API_BASE = 'https://prod-mail.habbyservice.com/roll';
+
+  const ERR = {
+    20001: '參數錯誤',
+    20002: '驗證碼錯誤，請重試',
+    20003: '玩家 ID 無效',
+    20401: '兌換碼無效',
+    20402: '兌換碼已被使用',
+    20403: '兌換碼已過期',
+    30001: '伺服器繁忙，請稍後'
+  };
+
+  const $ = id => document.getElementById(id);
+  const inputSection  = $('input-section');
+  const processSection= $('process-section');
+  const uidInput      = $('uid-input');
+  const codesInput    = $('codes-input');
+  const startBtn      = $('start-btn');
+  const progressFill  = $('progress-fill');
+  const progressText  = $('progress-text');
+  const captchaPanel  = $('captcha-panel');
+  const currentCode   = $('current-code');
+  const captchaImg    = $('captcha-img');
+  const refreshBtn    = $('refresh-btn');
+  const captchaInput  = $('captcha-input');
+  const submitBtn     = $('submit-btn');
+  const skipBtn       = $('skip-btn');
+  const doneBanner    = $('done-banner');
+  const resultsWrap   = $('results-wrap');
+  const resultsList   = $('results-list');
+  const restartBtn    = $('restart-btn');
+  const stopBtn       = $('stop-btn');
+  const corsWarning   = $('cors-warning');
+
+  function formatUid(uid) {
+    uid = uid.replace(/\s/g, '');
+    return uid.includes('-') ? uid.split('-')[1] : uid;
+  }
+
+  async function fetchCaptcha() {
+    const r = await fetch(`${API_BASE}/api/v1/captcha/generate`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}'
+    });
+    return (await r.json()).data.captchaId;
+  }
+
+  function loadCaptchaImg(id) {
+    captchaImg.src = `${API_BASE}/api/v1/captcha/image/${id}?t=${Date.now()}`;
+  }
+
+  async function claimCode(userId, giftCode, captcha, captchaId) {
+    const r = await fetch(`${API_BASE}/api/v1/giftcode/claim`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId, giftCode, captcha, captchaId })
+    });
+    return r.json();
+  }
+
+  function addResult(code, type, msg) {
+    resultsWrap.style.display = 'block';
+    const el = document.createElement('div');
+    el.className = `result-item ${type}`;
+    el.innerHTML = `<div><div class="result-code">${code}</div><div class="result-msg">${msg}</div></div>`;
+    resultsList.appendChild(el);
+    resultsList.scrollTop = resultsList.scrollHeight;
+  }
+
+  function setProgress(cur, tot) {
+    progressFill.style.width = tot ? `${Math.round(cur/tot*100)}%` : '0%';
+    progressText.textContent = `進度 ${cur} / ${tot}`;
+  }
+
+  let stopRequested = false;
+
+  async function runAll(codes, rawUid) {
+    const userId = formatUid(rawUid);
+
+    for (let i = 0; i < codes.length; i++) {
+      if (stopRequested) break;
+      const code = codes[i];
+      setProgress(i + 1, codes.length);
+      currentCode.textContent = code;
+      captchaInput.value = '';
+      submitBtn.disabled = false;
+      submitBtn.textContent = '確認兌換';
+
+      let captchaId;
+      try {
+        captchaId = await fetchCaptcha();
+        loadCaptchaImg(captchaId);
+      } catch (e) {
+        if (e.name === 'TypeError') corsWarning.style.display = 'block';
+        addResult(code, 'fail', '驗證碼載入失敗：' + e.message);
+        continue;
+      }
+
+      const reload = async () => {
+        try { captchaId = await fetchCaptcha(); loadCaptchaImg(captchaId); captchaInput.value = ''; captchaInput.focus(); } catch(_){}
+      };
+      refreshBtn.onclick = reload;
+      captchaImg.onclick  = reload;
+
+      await new Promise(resolve => {
+        submitBtn.onclick = async () => {
+          const val = captchaInput.value.trim();
+          if (!val) { captchaInput.classList.add('error'); captchaInput.focus(); return; }
+          captchaInput.classList.remove('error');
+          submitBtn.disabled = true;
+          submitBtn.textContent = '提交中…';
+
+          try {
+            const res = await claimCode(userId, code, val, captchaId);
+            if (res.code === 0) {
+              addResult(code, 'success', '兌換成功，獎勵已送至信箱');
+              resolve();
+            } else if (res.code === 20002) {
+              addResult(code, 'fail', '驗證碼錯誤，已自動更新');
+              await reload();
+              submitBtn.disabled = false;
+              submitBtn.textContent = '確認兌換';
+            } else {
+              addResult(code, 'fail', ERR[res.code] || `錯誤 ${res.code}`);
+              resolve();
+            }
+          } catch(e) {
+            if (e.name === 'TypeError') corsWarning.style.display = 'block';
+            addResult(code, 'fail', '請求失敗：' + e.message);
+            resolve();
+          }
+        };
+
+        skipBtn.onclick = () => { addResult(code, 'skipped', '已跳過'); resolve(); };
+      });
+
+      if (stopRequested) break;
+    }
+
+    // 完成
+    captchaPanel.style.display  = 'none';
+    submitBtn.style.display     = 'none';
+    skipBtn.style.display       = 'none';
+    restartBtn.style.display    = 'inline-flex';
+    stopBtn.textContent         = '返回';
+    stopBtn.className           = 'btn btn-ghost';
+
+    const ok = resultsList.querySelectorAll('.result-item.success').length;
+    doneBanner.textContent = stopRequested
+      ? `已中止，成功兌換 ${ok} 組`
+      : `全部完成！成功兌換 ${ok} / ${codes.length} 組`;
+    doneBanner.style.display = 'block';
+    setProgress(codes.length, codes.length);
+  }
+
+  startBtn.onclick = () => {
+    const uid  = uidInput.value.trim();
+    const raw  = codesInput.value.trim();
+    uidInput.classList.toggle('error', !uid);
+    codesInput.classList.toggle('error', !raw);
+    if (!uid || !raw) return;
+
+    const codes = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    if (!codes.length) return;
+
+    stopRequested = false;
+    resultsList.innerHTML      = '';
+    resultsWrap.style.display  = 'none';
+    doneBanner.style.display   = 'none';
+    corsWarning.style.display  = 'none';
+    captchaPanel.style.display = 'block';
+    submitBtn.style.display    = 'inline-flex';
+    skipBtn.style.display      = 'inline-flex';
+    restartBtn.style.display   = 'none';
+    stopBtn.textContent        = '中止';
+    stopBtn.className          = 'btn btn-red';
+
+    inputSection.style.display   = 'none';
+    processSection.style.display = 'block';
+    runAll(codes, uid);
+  };
+
+  stopBtn.onclick = () => {
+    if (stopBtn.textContent === '中止') {
+      stopRequested = true;
+      skipBtn.click();
+    } else {
+      inputSection.style.display   = 'block';
+      processSection.style.display = 'none';
+    }
+  };
+
+  restartBtn.onclick = () => {
+    inputSection.style.display   = 'block';
+    processSection.style.display = 'none';
+  };
+
+  captchaInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitBtn.click(); });
+</script>
+</body>
+</html>
