@@ -293,6 +293,40 @@
     ::-webkit-scrollbar-track { background: #f5e8c0; }
     ::-webkit-scrollbar-thumb { background: #c8943a; border-radius: 2px; }
 
+    /* ── 社群碼區塊 ── */
+    .section-label {
+      font-size: 10px; color: #9a6a30; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 7px;
+    }
+    .panel-divider {
+      border: none; border-top: 1px solid #ddc07a; margin: 11px 0;
+    }
+    #community-list { margin-bottom: 2px; }
+    .community-item {
+      padding: 7px 9px; border-radius: 7px; margin-bottom: 5px;
+      background: #fff8ec; border: 1.5px solid #e0c070;
+      cursor: pointer; transition: border-color 0.12s;
+    }
+    .community-item:hover:not(.expired) { border-color: #d96e12; }
+    .community-item.expired { opacity: 0.55; cursor: default; }
+    .comm-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .comm-badge {
+      font-size: 9px; padding: 1px 6px; border-radius: 10px; flex-shrink: 0;
+    }
+    .badge-valid   { background: #d8f0dc; color: #2a6030; }
+    .badge-unknown { background: #fde8c0; color: #8a4a10; }
+    .badge-expired { background: #e8e0d0; color: #6a5a40; }
+    .comm-code { font-size: 12px; color: #2e1a08; word-break: break-all; }
+    .comm-meta { font-size: 10px; color: #9a7050; margin-top: 2px; }
+    #community-loading { font-size: 11px; color: #9a7040; padding: 4px 0; }
+    .btn-add-link {
+      display: block; width: 100%; margin-top: 6px;
+      padding: 7px; border-radius: 7px; border: 1.5px dashed #c8943a;
+      background: transparent; color: #9a6a30; font-family: inherit;
+      font-size: 11px; cursor: pointer; text-align: center;
+    }
+    .btn-add-link:hover { background: #f5e8c0; border-style: solid; }
+
     /* ── RWD：窄螢幕垂直堆疊 ── */
     @media (max-width: 520px) {
       .layout { flex-direction: column; }
@@ -381,6 +415,20 @@
       <h2>禮包碼</h2>
     </div>
     <div class="panel-body" style="padding:14px 12px 12px;">
+
+      <!-- 社群推薦碼 -->
+      <div id="community-section">
+        <div class="section-label">社群推薦碼</div>
+        <div id="community-list">
+          <div id="community-loading">載入中…</div>
+        </div>
+        <button id="add-code-btn" class="btn-add-link">＋ 新增禮包碼</button>
+      </div>
+
+      <hr class="panel-divider">
+
+      <!-- 常見碼 -->
+      <div class="section-label">常見碼</div>
       <div class="preset-list" id="preset-list">
         <!-- 由 JS 產生 -->
       </div>
@@ -476,6 +524,79 @@
 
   /* textarea 手動輸入時也同步按鈕狀態 */
   codesInput.addEventListener('input', syncPresets);
+
+  /* ── 社群推薦碼（Google 試算表）── */
+  const SHEET_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRGzHNFYH9B1EBYeBEVv0ydevJJBKITWK83D4i_ZqPsz3XIDzxEwdz84BJxTpjAqjbMXZIaj8oBMItU/pub?gid=0&single=true&output=csv';
+  const FORM_URL  = ''; // 建立 Google 表單後填入網址
+
+  function parseCSV(text) {
+    return text.trim().split('\n').map(line => {
+      const cols = []; let cur = '', inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else cur += ch;
+      }
+      cols.push(cur.trim());
+      return cols;
+    });
+  }
+
+  function renderCommunity(rows) {
+    const list = $('community-list');
+    list.innerHTML = '';
+    if (!rows.length) {
+      list.innerHTML = '<div id="community-loading">目前沒有社群碼</div>';
+      return;
+    }
+    rows.forEach(([ts, code, author, status]) => {
+      if (!code) return;
+      const isExpired  = status === '已失效';
+      const isValid    = status === '有效';
+      const badgeClass = isExpired ? 'badge-expired' : isValid ? 'badge-valid' : 'badge-unknown';
+      const badgeText  = isExpired ? '已失效'        : isValid ? '有效'        : '未驗證';
+      const date = ts ? ts.split(' ')[0] : '';
+      const who  = (author && author.trim()) ? author.trim() : '匿名';
+
+      const item = document.createElement('div');
+      item.className = 'community-item' + (isExpired ? ' expired' : '');
+      item.innerHTML = `
+        <div class="comm-top">
+          <span class="comm-badge ${badgeClass}">${badgeText}</span>
+          <span class="comm-code">${code}</span>
+        </div>
+        <div class="comm-meta">${who}${date ? ' · ' + date : ''}</div>`;
+
+      if (!isExpired) {
+        item.onclick = () => {
+          const codes = getCodes();
+          if (!codes.includes(code)) { codes.push(code); setCodes(codes); syncPresets(); }
+        };
+      }
+      list.appendChild(item);
+    });
+  }
+
+  async function loadCommunity() {
+    try {
+      const res  = await fetch(SHEET_CSV);
+      const text = await res.text();
+      const rows = parseCSV(text).slice(1).filter(r => r[1] && r[1].trim());
+      renderCommunity(rows);
+    } catch(e) {
+      const el = $('community-loading');
+      if (el) el.textContent = '無法載入社群碼';
+    }
+  }
+
+  const addCodeBtn = $('add-code-btn');
+  if (FORM_URL) {
+    addCodeBtn.onclick = () => window.open(FORM_URL, '_blank');
+  } else {
+    addCodeBtn.style.display = 'none';
+  }
+
+  loadCommunity();
 
   /* ── API helpers ── */
   function formatUid(uid) {
