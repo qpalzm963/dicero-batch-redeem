@@ -549,14 +549,13 @@
       list.innerHTML = '<div id="community-loading">目前沒有社群碼</div>';
       return;
     }
-    rows.forEach(([ts, code, author, status]) => {
+    rows.forEach(([ts, code, status]) => {
       if (!code) return;
       const isExpired  = status === '已失效';
       const isValid    = status === '有效';
       const badgeClass = isExpired ? 'badge-expired' : isValid ? 'badge-valid' : 'badge-unknown';
       const badgeText  = isExpired ? '已失效'        : isValid ? '有效'        : '未驗證';
       const date = ts ? ts.split(' ')[0] : '';
-      const who  = (author && author.trim()) ? author.trim() : '匿名';
 
       const item = document.createElement('div');
       item.className = 'community-item' + (isExpired ? ' expired' : '');
@@ -565,7 +564,7 @@
           <span class="comm-badge ${badgeClass}">${badgeText}</span>
           <span class="comm-code">${code}</span>
         </div>
-        <div class="comm-meta">${who}${date ? ' · ' + date : ''}</div>`;
+        ${date ? '<div class="comm-meta">' + date + '</div>' : ''}`;
 
       if (!isExpired) {
         item.onclick = () => {
