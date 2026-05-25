@@ -723,6 +723,16 @@
     setProgress(codes.length, codes.length);
   }
 
+  /* ── 玩家 ID 緩存 ── */
+  const STORAGE_KEY = 'dicero_uid';
+  const savedUid = localStorage.getItem(STORAGE_KEY);
+  if (savedUid) uidInput.value = savedUid;
+
+  uidInput.addEventListener('change', () => {
+    const v = uidInput.value.trim();
+    if (v) localStorage.setItem(STORAGE_KEY, v);
+  });
+
   startBtn.onclick = () => {
     const uid = uidInput.value.trim();
     const raw = codesInput.value.trim();
